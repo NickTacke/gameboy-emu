@@ -1,0 +1,29 @@
+# Base off the Google style guide
+BasedOnStyle: Google
+
+# Two‑space indent, no tabs
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Wrap at 80 columns
+ColumnLimit: 80
+
+# Google‑style braces (attach to statement/decl line)
+BreakBeforeBraces: Attach
+
+# Keep short functions in one line only if they’re empty or inline
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+# Don’t cram if/for/while onto one line
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Indent `case:` labels under `switch`
+IndentCaseLabels: true
+
+# Pointer/ref on left: `int* p;`, not `int *p;`
+PointerAlignment: Left
+
+# Single space before trailing comments
+SpacesBeforeTrailingComments: 1
