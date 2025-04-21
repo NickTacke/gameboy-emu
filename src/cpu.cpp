@@ -34,6 +34,7 @@ void CPU::Execute(uint8_t opcode) {
             std::cout << "Unknown opcode: " << std::hex << static_cast<int>(opcode) << std::endl;
             break;
     }
+    std::cout << "PC: " << std::hex << static_cast<int>(pc_) << std::endl;
 }
 
 void CPU::Step() {
