@@ -42,9 +42,9 @@ Below is a prioritized list of tasks to complete and improve the GameBoy Emulato
 
 ## 🖥 CPU
 
-- [ ] Implement `FetchOpcode()` to read bytes from `MMU::Read()` and increment `PC` correctly.
-- [ ] Use `MMU::Read(pc_)` to fetch the opcode byte.
-- [ ] Increment `pc_` by 1 and correctly handle multi-byte immediates.
+- [x] Implement `FetchOpcode()` to read bytes from `MMU::Read()` and increment `PC` correctly.
+- [x] Use `MMU::Read(pc_)` to fetch the opcode byte.
+- [x] Increment `pc_` by 1 and correctly handle multi-byte immediates.
 - [ ] Decode and execute all base opcodes (0x00–0xFF) in `Execute()`.
 - [ ] Group and implement loads (`LD`), ALU ops (`ADD`, `SUB`, etc.), control flow, and stack instructions.
 - [ ] Implement memory loads/stores (`LD (HL),r` and `LD r,(HL)`).
