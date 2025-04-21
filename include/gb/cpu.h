@@ -4,6 +4,17 @@
 
 namespace gb {
 
+// Flag definitions
+constexpr uint8_t kZeroFlagBit = 7;
+constexpr uint8_t kSubtractFlagBit = 6;
+constexpr uint8_t kHalfCarryFlagBit = 5;
+constexpr uint8_t kCarryFlagBit = 4;
+
+constexpr uint8_t kZeroFlagMask = 1 << kZeroFlagBit;
+constexpr uint8_t kSubtractFlagMask = 1 << kSubtractFlagBit;
+constexpr uint8_t kHalfCarryFlagMask = 1 << kHalfCarryFlagBit;
+constexpr uint8_t kCarryFlagMask = 1 << kCarryFlagBit;
+
 enum class Interrupt : uint8_t { VBlank = 0, LCDStat, Timer, Serial, Joypad };
 
 class CPU {
@@ -31,6 +42,40 @@ class CPU {
   uint8_t h() const { return h_; }
   uint8_t l() const { return l_; }
 
+  // Helper to get HL register pair
+  uint16_t hl() const { return (static_cast<uint16_t>(h_) << 8) | l_; }
+  // Helper to set HL register pair
+  void set_hl(uint16_t val) {
+    h_ = static_cast<uint8_t>(val >> 8);
+    l_ = static_cast<uint8_t>(val & 0xFF);
+  }
+
+  // Flag helpers
+  void SetFlag(uint8_t flag_mask, bool set);
+  bool GetFlag(uint8_t flag_mask) const;
+
+  // Stack helpers
+  void PushWord(uint16_t word);
+  uint16_t PopWord();
+
+  // Arithmetic helpers
+  void Add8(uint8_t val, bool use_carry);
+  void Sub8(uint8_t val, bool use_carry);
+  uint8_t Inc8(uint8_t reg);
+  uint8_t Dec8(uint8_t reg);
+
+  // Logic helpers
+  void And8(uint8_t val);
+  void Or8(uint8_t val);
+  void Xor8(uint8_t val);
+  void Cp8(uint8_t val);
+
+  // Rotate/Shift helpers
+  void RlcA(); // RLCA
+  void RrcA(); // RRCA
+  void RlA();  // RLA
+  void RrA();  // RRA
+
  private:
   // Fetch next opcode from memory
   uint8_t FetchOpcode();
@@ -50,6 +95,40 @@ class CPU {
 
   // 16-bit special registers
   uint16_t sp_, pc_;
+
+  // Helper to get HL register pair
+  uint16_t hl() const { return (static_cast<uint16_t>(h_) << 8) | l_; }
+  // Helper to set HL register pair
+  void set_hl(uint16_t val) {
+    h_ = static_cast<uint8_t>(val >> 8);
+    l_ = static_cast<uint8_t>(val & 0xFF);
+  }
+
+  // Flag helpers
+  void SetFlag(uint8_t flag_mask, bool set);
+  bool GetFlag(uint8_t flag_mask) const;
+
+  // Stack helpers
+  void PushWord(uint16_t word);
+  uint16_t PopWord();
+
+  // Arithmetic helpers
+  void Add8(uint8_t val, bool use_carry);
+  void Sub8(uint8_t val, bool use_carry);
+  uint8_t Inc8(uint8_t reg);
+  uint8_t Dec8(uint8_t reg);
+
+  // Logic helpers
+  void And8(uint8_t val);
+  void Or8(uint8_t val);
+  void Xor8(uint8_t val);
+  void Cp8(uint8_t val);
+
+  // Rotate/Shift helpers
+  void RlcA(); // RLCA
+  void RrcA(); // RRCA
+  void RlA();  // RLA
+  void RrA();  // RRA
 
   // Interrupt master enable flag
   bool ime_ = false;
