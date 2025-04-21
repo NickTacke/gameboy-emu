@@ -40,6 +40,11 @@ class CPU {
   // Decode & execute
   void Execute(uint8_t opcode);
 
+  // Per-opcode handlers (256 total)
+#define OPCODE(name, code) void Op##name();
+#include "gb/opcode_list.h"
+#undef OPCODE
+
   // 8-bit registers
   uint8_t a_, f_, b_, c_, d_, e_, h_, l_;
 
