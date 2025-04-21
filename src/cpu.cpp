@@ -21,6 +21,7 @@ void CPU::Reset() {
 uint8_t CPU::FetchOpcode() {
   uint8_t opcode = MMU::Instance().Read(pc_);
   pc_++;
+  cycles_ += 4;  // Account for opcode fetch (4 t-states)
   return opcode;
 }
 
@@ -36,20 +37,31 @@ uint16_t CPU::Fetch16() {
 
 void CPU::Execute(uint8_t opcode) {
   static const std::array<void (CPU::*)(), 256> kDispatch = [] {
-    std::array<void (CPU::*)(), 256> t{};
+    std::array<void (CPU::*)(), 256> t;
+    t.fill(&CPU::OpIllegal);  // default undefined opcodes
 #define OPCODE(name, code) t[code] = &CPU::Op##name;
 #include "gb/opcode_list.h"
 #undef OPCODE
-    // Map undefined opcodes to a specific handler (e.g., NOP or an error handler)
-    // Alternatively, ensure the opcode list defines them pointing to a handler.
-    // For now, assuming opcode_list.h covers all 256, potentially pointing undefined to NOP/PREFIX_CB.
     return t;
   }();
-
   (this->*kDispatch[opcode])();
 }
 
 void CPU::Step() {
+  // Handle delayed EI (enable after next instruction)
+  if (ei_delay_) {
+    ime_ = true;
+    ei_delay_ = false;
+  }
+  // Service interrupts first
+  ServiceInterrupts();
+
+  // If halted, consume a machine cycle and return
+  if (halted_) {
+    cycles_ += 4;
+    return;
+  }
+  // Normal instruction fetch & execute
   uint8_t opcode = FetchOpcode();
   Execute(opcode);
 }
@@ -561,7 +573,10 @@ void CPU::OpRRA() { RrA(); }   // 0x1F
 // --- Control Flow Instructions ---
 
 // Jumps (JP, JR)
-void CPU::OpJP_a16() { pc_ = Fetch16(); } // 0xC3
+void CPU::OpJP_a16() { // 0xC3
+  pc_ = Fetch16();
+  cycles_ += 4;
+}
 
 void CPU::OpJP_HL() { pc_ = hl(); } // 0xE9
 
@@ -569,77 +584,70 @@ void CPU::OpJP_NZ_a16() { // 0xC2
   uint16_t addr = Fetch16();
   if (!GetFlag(kZeroFlagMask)) {
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJP_Z_a16() { // 0xCA
   uint16_t addr = Fetch16();
   if (GetFlag(kZeroFlagMask)) {
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJP_NC_a16() { // 0xD2
   uint16_t addr = Fetch16();
   if (!GetFlag(kCarryFlagMask)) {
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJP_C_a16() { // 0xDA
   uint16_t addr = Fetch16();
   if (GetFlag(kCarryFlagMask)) {
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJR_r8() { // 0x18
   int8_t offset = static_cast<int8_t>(Fetch8());
   pc_ = static_cast<uint16_t>(pc_ + offset);
+  cycles_ += 4;
 }
 
 void CPU::OpJR_NZ_r8() { // 0x20
   int8_t offset = static_cast<int8_t>(Fetch8());
   if (!GetFlag(kZeroFlagMask)) {
     pc_ = static_cast<uint16_t>(pc_ + offset);
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJR_Z_r8() { // 0x28
   int8_t offset = static_cast<int8_t>(Fetch8());
   if (GetFlag(kZeroFlagMask)) {
     pc_ = static_cast<uint16_t>(pc_ + offset);
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJR_NC_r8() { // 0x30
   int8_t offset = static_cast<int8_t>(Fetch8());
   if (!GetFlag(kCarryFlagMask)) {
     pc_ = static_cast<uint16_t>(pc_ + offset);
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpJR_C_r8() { // 0x38
   int8_t offset = static_cast<int8_t>(Fetch8());
   if (GetFlag(kCarryFlagMask)) {
     pc_ = static_cast<uint16_t>(pc_ + offset);
-    // TODO: Cycle cost
+    cycles_ += 4;
   }
-  // TODO: Cycle cost
 }
 
 // Calls
@@ -647,6 +655,8 @@ void CPU::OpCALL_a16() { // 0xCD
   uint16_t addr = Fetch16();
   PushWord(pc_);
   pc_ = addr;
+  // Account for call overhead
+  cycles_ += 12;
 }
 
 void CPU::OpCALL_NZ_a16() { // 0xC4
@@ -654,9 +664,9 @@ void CPU::OpCALL_NZ_a16() { // 0xC4
   if (!GetFlag(kZeroFlagMask)) {
     PushWord(pc_);
     pc_ = addr;
-    // TODO: Cycle cost
+    // Additional cycles when call is taken
+    cycles_ += 12;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpCALL_Z_a16() { // 0xCC
@@ -664,9 +674,8 @@ void CPU::OpCALL_Z_a16() { // 0xCC
   if (GetFlag(kZeroFlagMask)) {
     PushWord(pc_);
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 12;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpCALL_NC_a16() { // 0xD4
@@ -674,9 +683,8 @@ void CPU::OpCALL_NC_a16() { // 0xD4
   if (!GetFlag(kCarryFlagMask)) {
     PushWord(pc_);
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 12;
   }
-  // TODO: Cycle cost
 }
 
 void CPU::OpCALL_C_a16() { // 0xDC
@@ -684,9 +692,8 @@ void CPU::OpCALL_C_a16() { // 0xDC
   if (GetFlag(kCarryFlagMask)) {
     PushWord(pc_);
     pc_ = addr;
-    // TODO: Cycle cost
+    cycles_ += 12;
   }
-  // TODO: Cycle cost
 }
 
 // Restarts (RST)
@@ -700,43 +707,46 @@ void CPU::OpRST_30H() { PushWord(pc_); pc_ = 0x0030; } // 0xF7
 void CPU::OpRST_38H() { PushWord(pc_); pc_ = 0x0038; } // 0xFF
 
 // Returns (RET, RETI)
-void CPU::OpRET() { pc_ = PopWord(); } // 0xC9
+void CPU::OpRET() { // 0xC9
+  pc_ = PopWord();
+  // Account for return overhead
+  cycles_ += 8;
+}
 
 void CPU::OpRET_NZ() { // 0xC0
-  // TODO: Add cycle cost
   if (!GetFlag(kZeroFlagMask)) {
     pc_ = PopWord();
-    // TODO: Add cycle cost
+    // Additional cycles when return is taken
+    cycles_ += 8;
   }
 }
 
 void CPU::OpRET_Z() { // 0xC8
-  // TODO: Add cycle cost
   if (GetFlag(kZeroFlagMask)) {
     pc_ = PopWord();
-    // TODO: Add cycle cost
+    cycles_ += 8;
   }
 }
 
 void CPU::OpRET_NC() { // 0xD0
-  // TODO: Add cycle cost
   if (!GetFlag(kCarryFlagMask)) {
     pc_ = PopWord();
-    // TODO: Add cycle cost
+    cycles_ += 8;
   }
 }
 
 void CPU::OpRET_C() { // 0xD8
-  // TODO: Add cycle cost
   if (GetFlag(kCarryFlagMask)) {
     pc_ = PopWord();
-    // TODO: Add cycle cost
+    cycles_ += 8;
   }
 }
 
 void CPU::OpRETI() { // 0xD9
   pc_ = PopWord();
   ime_ = true; // Enable interrupts immediately after returning
+  // Account for return-from-interrupt overhead
+  cycles_ += 8;
 }
 
 
@@ -757,24 +767,22 @@ void CPU::OpPOP_AF() { uint16_t val = PopWord(); a_ = static_cast<uint8_t>(val >
 
 void CPU::OpNOP() {} // 0x00
 
-void CPU::OpSTOP() { // 0x10
-  // TODO: Implement proper STOP behavior (halts CPU&LCD until button press)
-  // Consumes following 0x00 byte
-  Fetch8();
-  // For now, may behave like NOP or HALT depending on exact system state needed
+void CPU::OpSTOP() {  // 0x10
+  // Enter STOP (low-power) state, consume immediate operand
+  (void)Fetch8();
+  halted_ = true;
 }
 
-void CPU::OpHALT() { // 0x76
-  // TODO: Implement HALT behavior (pauses CPU until an interrupt occurs)
-  // Requires interrupt handling system.
-  // If IME=0 and IF&IE=0, HALT behavior is buggy on DMG.
+void CPU::OpHALT() {  // 0x76
+  // HALT CPU until next interrupt
+  halted_ = true;
 }
 
 void CPU::OpDI() { ime_ = false; } // 0xF3 - Disable Interrupts
 
-void CPU::OpEI() { // 0xFB - Enable Interrupts
-  // TODO: Implement delayed interrupt enable (after instruction following EI)
-  ime_ = true; // Enable immediately for now
+void CPU::OpEI() {  // 0xFB - Enable Interrupts
+  // Delayed EI: set flag to enable interrupts after next instruction
+  ei_delay_ = true;
 }
 
 void CPU::OpPREFIX_CB() { // 0xCB
@@ -783,8 +791,41 @@ void CPU::OpPREFIX_CB() { // 0xCB
   std::cerr << "Error: Encountered 0xCB prefix but CB instructions are not implemented." << std::endl;
 }
 
-// --- Undefined Opcodes ---
-// Handled by the dispatch table mapping them (e.g., to OpNOP or OpPREFIX_CB as placeholder)
-// 0xD3, 0xDB, 0xDD, 0xE3, 0xE4, 0xEB, 0xEC, 0xED, 0xF4, 0xFC, 0xFD
+// Handler for undefined/illegal opcodes
+void CPU::OpIllegal() {
+  // Report illegal opcode and enter halted state
+  std::cerr << "Error: Illegal opcode encountered at PC=0x"
+            << std::hex << (pc_ - 1) << std::dec << std::endl;
+  halted_ = true;
+}
+
+// Check and service any pending interrupts
+void CPU::ServiceInterrupts() {
+  // Read interrupt enable and flags
+  uint8_t ie = MMU::Instance().Read(0xFFFF);
+  uint8_t iflag = MMU::Instance().Read(0xFF0F);
+  uint8_t pending = ie & iflag;
+  if (!pending) return;
+  // If interrupts disabled, exit HALT but do not service
+  if (!ime_) {
+    if (halted_) halted_ = false;
+    return;
+  }
+  // Service highest-priority interrupt
+  for (int i = 0; i < 5; ++i) {
+    uint8_t mask = (1 << i);
+    if (pending & mask) {
+      ime_ = false;
+      halted_ = false;
+      // Clear the IF flag for this interrupt
+      MMU::Instance().Write(0xFF0F, iflag & ~mask);
+      // Push current PC and jump to vector
+      PushWord(pc_);
+      pc_ = 0x0040 + i * 8;
+      cycles_ += 20;  // interrupt handling overhead
+      break;
+    }
+  }
+}
 
 } // namespace gb
