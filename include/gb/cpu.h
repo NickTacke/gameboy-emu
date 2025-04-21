@@ -22,6 +22,21 @@ class CPU {
 
     // Advance the CPU by one instruction
     void Step();
+
+    // Getters for test/inspection
+    uint16_t pc() const { return pc_; }
+    uint16_t sp() const { return sp_; }
+    bool ime()    const { return ime_; }
+
+    uint8_t a() const { return a_; }
+    uint8_t f() const { return f_; }
+    uint8_t b() const { return b_; }
+    uint8_t c() const { return c_; }
+    uint8_t d() const { return d_; }
+    uint8_t e() const { return e_; }
+    uint8_t h() const { return h_; }
+    uint8_t l() const { return l_; }
+
   private:
     // Fetch next opcode from memory
     uint8_t FetchOpcode();
