@@ -4,54 +4,48 @@
 
 namespace gb {
 
-enum class Interrupt : uint8_t {
-    VBlank = 0,
-    LCDStat,
-    Timer,
-    Serial,
-    Joypad
-};
+enum class Interrupt : uint8_t { VBlank = 0, LCDStat, Timer, Serial, Joypad };
 
 class CPU {
-  public:
-    CPU() = default;
-    ~CPU() = default;
+ public:
+  CPU() = default;
+  ~CPU() = default;
 
-    // Initialize registers and state
-    void Reset();
+  // Initialize registers and state
+  void Reset();
 
-    // Advance the CPU by one instruction
-    void Step();
+  // Advance the CPU by one instruction
+  void Step();
 
-    // Getters for test/inspection
-    uint16_t pc() const { return pc_; }
-    uint16_t sp() const { return sp_; }
-    bool ime()    const { return ime_; }
+  // Getters for test/inspection
+  uint16_t pc() const { return pc_; }
+  uint16_t sp() const { return sp_; }
+  bool ime() const { return ime_; }
 
-    uint8_t a() const { return a_; }
-    uint8_t f() const { return f_; }
-    uint8_t b() const { return b_; }
-    uint8_t c() const { return c_; }
-    uint8_t d() const { return d_; }
-    uint8_t e() const { return e_; }
-    uint8_t h() const { return h_; }
-    uint8_t l() const { return l_; }
+  uint8_t a() const { return a_; }
+  uint8_t f() const { return f_; }
+  uint8_t b() const { return b_; }
+  uint8_t c() const { return c_; }
+  uint8_t d() const { return d_; }
+  uint8_t e() const { return e_; }
+  uint8_t h() const { return h_; }
+  uint8_t l() const { return l_; }
 
-  private:
-    // Fetch next opcode from memory
-    uint8_t FetchOpcode();
+ private:
+  // Fetch next opcode from memory
+  uint8_t FetchOpcode();
 
-    // Decode & execute
-    void Execute(uint8_t opcode);
+  // Decode & execute
+  void Execute(uint8_t opcode);
 
-    // 8-bit registers
-    uint8_t a_, f_, b_, c_, d_, e_, h_, l_;
+  // 8-bit registers
+  uint8_t a_, f_, b_, c_, d_, e_, h_, l_;
 
-    // 16-bit special registers
-    uint16_t sp_, pc_;
+  // 16-bit special registers
+  uint16_t sp_, pc_;
 
-    // Interrupt master enable flag
-    bool ime_ = false;
+  // Interrupt master enable flag
+  bool ime_ = false;
 };
 
 } // namespace gb

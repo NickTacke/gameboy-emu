@@ -1,5 +1,6 @@
 {
-    "C_Cpp.clang_format_style": "file",
+    "clang-format.style": "file",
+    "clang-format.executable": "C:/msys64/ucrt64/bin/clang-format",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "editor.formatOnType": true,
