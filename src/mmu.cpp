@@ -103,4 +103,17 @@ void MMU::Write(uint16_t address, uint8_t value) {
     }
 }
 
+void MMU::Reset() {
+    rom_bank0_.fill(0xFF);
+    rom_bank_n_.fill(0xFF);
+    vram_.fill(0);
+    ext_ram_.fill(0);
+    wram0_.fill(0);
+    wram1_.fill(0);
+    oam_.fill(0);
+    io_regs_.fill(0);
+    hram_.fill(0);
+    interrupt_enable_ = 0;
+}
+
 }  // namespace gb
