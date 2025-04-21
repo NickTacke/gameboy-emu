@@ -59,10 +59,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-add_executable(mmu_test
+add_executable(gameboy-emu-tests
   src/mmu.cpp
+  src/cpu.cpp
   tests/mmu_test.cpp
+  tests/cpu_test.cpp
 )
-target_include_directories(mmu_test PRIVATE "${CMAKE_SOURCE_DIR}/include")
-target_link_libraries(mmu_test PRIVATE GTest::gtest_main)
-add_test(NAME MMUTests COMMAND mmu_test)
+target_include_directories(gameboy-emu-tests PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(gameboy-emu-tests PRIVATE GTest::gtest_main)
+add_test(NAME MMUTests COMMAND gameboy-emu-tests)
