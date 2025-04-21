@@ -31,6 +31,9 @@ class MMU {
     // Write a byte to a specific address
     void Write(uint16_t address, uint8_t value);
 
+    // Reset all memory regions back to default values
+    void Reset();
+
   private:
     MMU();
     ~MMU() = default;
