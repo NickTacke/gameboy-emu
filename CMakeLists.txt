@@ -50,3 +50,19 @@ endif()
 
 # Link SDL2 to gameboy-emu target
 target_link_libraries(gameboy-emu PRIVATE SDL2::SDL2)
+
+# GoogleTest integration: use local gtest headers
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
+)
+FetchContent_MakeAvailable(googletest)
+
+add_executable(mmu_test
+  src/mmu.cpp
+  tests/mmu_test.cpp
+)
+target_include_directories(mmu_test PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_link_libraries(mmu_test PRIVATE GTest::gtest_main)
+add_test(NAME MMUTests COMMAND mmu_test)
