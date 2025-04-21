@@ -1,4 +1,5 @@
 #include "gb/cpu.h"
+#include "gb/mmu.h"
 
 #include <iostream>
 namespace gb {
@@ -13,10 +14,19 @@ void CPU::Reset() {
 }
 
 uint8_t CPU::FetchOpcode() {
-  // TODO: Implement memory
-  uint8_t opcode = 0x0;
+  uint8_t opcode = MMU::Instance().Read(pc_);
   pc_++;
   return opcode;
+}
+
+uint8_t CPU::Fetch8() {
+  return FetchOpcode();
+}
+
+uint16_t CPU::Fetch16() {
+  uint16_t low = FetchOpcode();
+  uint16_t high = FetchOpcode();
+  return static_cast<uint16_t>(high) << 8 | low;
 }
 
 void CPU::Execute(uint8_t opcode) {
@@ -24,6 +34,9 @@ void CPU::Execute(uint8_t opcode) {
     case 0x00: // NOP
       break;
     case 0x01: // LD BC, d16
+      uint16_t d16 = Fetch16();
+      b_ = d16 >> 8;
+      c_ = d16 & 0xFF;
       break;
     case 0x02: // LD (BC), A
       break;
