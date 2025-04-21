@@ -34,6 +34,8 @@ class CPU {
  private:
   // Fetch next opcode from memory
   uint8_t FetchOpcode();
+  uint8_t Fetch8();
+  uint16_t Fetch16();
 
   // Decode & execute
   void Execute(uint8_t opcode);
