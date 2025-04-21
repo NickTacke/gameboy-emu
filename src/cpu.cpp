@@ -30,30 +30,28 @@ uint16_t CPU::Fetch16() {
 }
 
 void CPU::Execute(uint8_t opcode) {
-  switch (opcode) {
-    case 0x00: // NOP
-      break;
-    case 0x01: // LD BC, d16
-      uint16_t d16 = Fetch16();
-      b_ = d16 >> 8;
-      c_ = d16 & 0xFF;
-      break;
-    case 0x02: // LD (BC), A
-      break;
-    case 0x03: // INC BC
-      break;
-    case 0x04: // INC B
-      break;
-    default:
-      std::cout << "Unknown opcode: " << std::hex << static_cast<int>(opcode)
-                << std::endl;
-      break;
-  }
+  static const std::array<void (CPU::*)(), 256> kDispatch = [] {
+    std::array<void (CPU::*)(), 256> t{};
+#define OPCODE(name, code) t[code] = &CPU::Op##name;
+#include "gb/opcode_list.h"
+#undef OPCODE
+    return t;
+  }();
+  (this->*kDispatch[opcode])();
 }
 
 void CPU::Step() {
   uint8_t opcode = FetchOpcode();
   Execute(opcode);
+}
+
+// Per-opcode handlers
+void CPU::OpNOP() {}
+
+void CPU::OpLD_BC_d16() {
+  uint16_t val = Fetch16();
+  b_ = static_cast<uint8_t>(val >> 8);
+  c_ = static_cast<uint8_t>(val & 0xFF);
 }
 
 } // namespace gb
